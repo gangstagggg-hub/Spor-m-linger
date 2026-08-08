@@ -1,0 +1,9 @@
+{
+  "name": "gedo-tralle-teller",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Måleteller for gedo-tralle med varig lagring via Netlify Blobs",
+  "dependencies": {
+    "@netlify/blobs": "*"
+  }
+}
