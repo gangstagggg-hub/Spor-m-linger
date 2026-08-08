@@ -466,6 +466,15 @@
   <button class="sekundaer" id="iosInstallLukkBtn">Skjønner</button>
 </div>
 
+<div class="installbanner" id="kromReserveBanner">
+  <img src="/icons/icon-32.png" alt="" width="30" height="30">
+  <div class="installbanner-tekst">
+    <strong>Installer Gedo Tralle</strong>
+    <span id="kromReserveTekst">Trykk ⋮ øverst til høyre, og velg «Installer app».</span>
+  </div>
+  <button class="sekundaer" id="kromReserveLukkBtn">Skjønner</button>
+</div>
+
 <div class="wrap">
 
   <!-- STARTSIDE: velg prosjekt -->
@@ -937,6 +946,7 @@
   const installJaBtn = document.getElementById("installJaBtn");
   const installNeiBtn = document.getElementById("installNeiBtn");
   let utsattPrompt = null;
+  let nativPromptMottatt = false;
 
   function kjorerAlleredeSomApp() {
     return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
@@ -945,6 +955,7 @@
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     utsattPrompt = e;
+    nativPromptMottatt = true;
     if (!kjorerAlleredeSomApp() && !localStorage.getItem("gedo-tralle-install-avvist")) {
       installBanner.style.display = "flex";
     }
@@ -983,6 +994,36 @@
   iosInstallLukkBtn.addEventListener("click", () => {
     iosInstallBanner.style.display = "none";
     localStorage.setItem("gedo-tralle-ios-install-avvist", "1");
+  });
+
+  // --- Reserveløsning for Chrome/Edge (Android/desktop): hvis nettleseren ikke har
+  //     sendt sin egen installasjonsprompt innen kort tid, vis veiledning i stedet,
+  //     slik at man alltid får en forespørsel om å installere når man åpner siden ---
+  function erChromeAktig() {
+    const ua = navigator.userAgent;
+    return /Chrome|Chromium|Edg/.test(ua) && !erIOS();
+  }
+
+  const kromReserveBanner = document.getElementById("kromReserveBanner");
+  const kromReserveLukkBtn = document.getElementById("kromReserveLukkBtn");
+  const kromReserveTekst = document.getElementById("kromReserveTekst");
+
+  setTimeout(() => {
+    if (nativPromptMottatt) return; // ekte prompt kom - trenger ikke reserveløsning
+    if (kjorerAlleredeSomApp()) return;
+    if (localStorage.getItem("gedo-tralle-install-avvist")) return;
+    if (!erChromeAktig()) return;
+
+    const erMobil = /Android/.test(navigator.userAgent);
+    kromReserveTekst.textContent = erMobil
+      ? "Trykk ⋮ (tre prikker) øverst til høyre, og velg «Installer app» eller «Legg til på startskjerm»."
+      : "Trykk installasjons-ikonet i adressefeltet (eller ⋮-menyen øverst til høyre → «Installer Gedo Tralle …»).";
+    kromReserveBanner.style.display = "flex";
+  }, 2000);
+
+  kromReserveLukkBtn.addEventListener("click", () => {
+    kromReserveBanner.style.display = "none";
+    localStorage.setItem("gedo-tralle-install-avvist", "1");
   });
 </script>
 </body>
