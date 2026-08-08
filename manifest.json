@@ -1,0 +1,17 @@
+{
+  "name": "Gedo Tralle – Måleteller",
+  "short_name": "Gedo Tralle",
+  "description": "Registrer og hold oversikt over målinger med gedo-tralle, per prosjekt og linje.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f6f3",
+  "theme_color": "#3c3b37",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

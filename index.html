@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gedo Tralle – Måleteller</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/favicon.ico" sizes="any">
+<link rel="icon" href="/icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<meta name="theme-color" content="#3c3b37">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Gedo Tralle">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #f7f6f3;
+    margin: 0;
+    padding: 40px 16px 60px;
+    color: #2a2a28;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  input, .strekning-chip { -webkit-user-select: text; user-select: text; }
+  .wrap {
+    max-width: 660px;
+    margin: 0 auto;
+  }
+  header {
+    margin-bottom: 24px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 650;
+    margin: 0 0 6px;
+    letter-spacing: -0.01em;
+    color: #21201d;
+  }
+  p.sub {
+    color: #7a7873;
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    max-width: 52ch;
+  }
+  .card {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 22px;
+    box-shadow: 0 1px 2px rgba(30,30,25,0.03), 0 6px 20px rgba(30,30,25,0.045);
+    margin-bottom: 16px;
+    border: 1px solid #ece9e3;
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+  .field {
+    flex: 1;
+    min-width: 100px;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: #8a887f;
+    margin-bottom: 6px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  input[type="number"] {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1.5px solid #e4e1d9;
+    border-radius: 9px;
+    font-size: 16px;
+    transition: border-color .15s ease, background .15s ease;
+    background: #fbfaf7;
+    color: #2a2a28;
+  }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: #9a968a;
+    background: white;
+  }
+  button {
+    background: #3c3b37;
+    color: #f7f6f3;
+    border: none;
+    padding: 12px 22px;
+    border-radius: 9px;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background .15s ease, transform .08s ease;
+  }
+  button:hover { background: #504e48; }
+  button:active { transform: translateY(1px); }
+  button:disabled { opacity: .6; cursor: default; }
+  button.sekundaer {
+    background: #ffffff;
+    color: #3c3b37;
+    border: 1.5px solid #d8d5cb;
+  }
+  button.sekundaer:hover { background: #faf9f6; }
+  .error {
+    color: #b4483a;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+  .status {
+    font-size: 12.5px;
+    color: #9c9a92;
+    margin-top: 10px;
+    display: none;
+  }
+
+  .section-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #8a887f;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 16px;
+  }
+
+  .hjelpetekst {
+    font-size: 12px;
+    color: #b0aea5;
+    margin: 10px 0 0;
+    font-style: italic;
+  }
+
+  /* Prosjektvalg (startside) */
+  .prosjekt-knapper {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 14px;
+  }
+  .prosjekt-knapp {
+    background: #ffffff;
+    color: #21201d;
+    border: 1.5px solid #e4e1d9;
+    border-radius: 12px;
+    padding: 28px 16px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all .15s ease;
+    -webkit-touch-callout: none;
+    word-break: break-word;
+  }
+  .prosjekt-knapp:hover {
+    background: #3c3b37;
+    color: #f7f6f3;
+    border-color: #3c3b37;
+    transform: translateY(-1px);
+  }
+  .prosjekt-knapp.holder {
+    background: #eae7de;
+    border-color: #c9c4b6;
+    transform: scale(0.97);
+  }
+
+  .prosjekt-linje {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+  }
+  .prosjekt-navn {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f7f6f3;
+    background: #3c3b37;
+    padding: 5px 12px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+  .bytt-prosjekt {
+    background: none;
+    color: #9c9a92;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .bytt-prosjekt:hover { background: none; color: #6b6a63; }
+
+  /* Bryter for UTG / ING */
+  .bryter {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .bryter-knapp {
+    flex: 1;
+    background: #ffffff;
+    color: #8a887f;
+    border: 1.5px solid #e4e1d9;
+    padding: 12px;
+    border-radius: 9px;
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .bryter-knapp.aktiv {
+    background: #3c3b37;
+    color: #f7f6f3;
+    border-color: #3c3b37;
+  }
+  .bryter-knapp:hover:not(.aktiv) { background: #faf9f6; }
+
+  /* Legende */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 22px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    color: #6b6a63;
+  }
+  .legend-swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* Samlet linje */
+  .track-outer {
+    padding: 4px 0 6px;
+  }
+  .track {
+    position: relative;
+    height: 20px;
+    background: #f0eee8;
+    border-radius: 10px;
+    display: flex;
+    overflow: visible;
+  }
+  .segment {
+    position: relative;
+    height: 100%;
+    transition: filter .15s ease;
+  }
+  .segment:hover { filter: brightness(0.94); }
+  .segment.cap-start { border-top-left-radius: 10px; border-bottom-left-radius: 10px; }
+  .segment.cap-end { border-top-right-radius: 10px; border-bottom-right-radius: 10px; }
+  .segment + .segment { border-left: 1px solid rgba(255,255,255,0.55); }
+
+  .segment[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 130%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2a2a28;
+    color: #f7f6f3;
+    padding: 5px 9px;
+    border-radius: 6px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .segment[data-tooltip]:hover::before {
+    content: "";
+    position: absolute;
+    bottom: 112%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #2a2a28;
+    z-index: 10;
+  }
+
+  .range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #9c9a92;
+    font-weight: 600;
+  }
+
+  .empty {
+    color: #b0aea5;
+    font-size: 14px;
+    text-align: center;
+    padding: 14px 0 4px;
+  }
+
+  /* Kolonner gruppert etter antall ganger målt */
+  .kolonner {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 22px;
+  }
+  .kolonne-header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4b4a44;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f0eee8;
+  }
+  .kolonne-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+  .kolonne-liste {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .strekning-chip {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #3a3a36;
+    background: #faf9f6;
+    border: 1px solid #ece9e3;
+    border-radius: 7px;
+    padding: 7px 10px;
+  }
+  .kolonne-tom {
+    font-size: 12.5px;
+    color: #b0aea5;
+    font-style: italic;
+  }
+
+  .topplinje {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .tilbakestill {
+    background: none;
+    color: #9c9a92;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .tilbakestill:hover { background: none; color: #6b6a63; }
+
+  .kategori-tittel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #21201d;
+    margin: 30px 0 12px;
+  }
+  .kategori-tittel:first-of-type { margin-top: 0; }
+  .kategori-merke {
+    font-size: 11.5px;
+    font-weight: 700;
+    color: #f7f6f3;
+    background: #3c3b37;
+    padding: 3px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.04em;
+  }
+
+  #appInnhold { display: none; }
+
+  /* Installasjonsbanner */
+  .installbanner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    background: #3c3b37;
+    color: #f7f6f3;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+    display: none;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 -6px 20px rgba(0,0,0,0.18);
+    flex-wrap: wrap;
+  }
+  .installbanner img {
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .installbanner-tekst {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 180px;
+  }
+  .installbanner-tekst strong {
+    font-size: 14.5px;
+  }
+  .installbanner-tekst span {
+    font-size: 12.5px;
+    color: #cfcdc6;
+    line-height: 1.4;
+  }
+  .installbanner-knapper {
+    display: flex;
+    gap: 8px;
+  }
+  .installbanner button {
+    padding: 9px 16px;
+    font-size: 13.5px;
+  }
+  .installbanner button:not(.sekundaer) {
+    background: #f7f6f3;
+    color: #21201d;
+  }
+  .installbanner button:not(.sekundaer):hover { background: #ffffff; }
+  .installbanner button.sekundaer {
+    background: transparent;
+    color: #cfcdc6;
+    border-color: #5a5952;
+  }
+  .installbanner button.sekundaer:hover { background: #4a4944; }
+</style>
+</head>
+<body>
+
+<div class="installbanner" id="installBanner">
+  <img src="/icons/icon-32.png" alt="" width="30" height="30">
+  <div class="installbanner-tekst">
+    <strong>Installer Gedo Tralle</strong>
+    <span>Legg til appen på hjemskjermen for rask tilgang, uten nettleserfelt.</span>
+  </div>
+  <div class="installbanner-knapper">
+    <button class="sekundaer" id="installNeiBtn">Ikke nå</button>
+    <button id="installJaBtn">Installer</button>
+  </div>
+</div>
+
+<div class="installbanner" id="iosInstallBanner">
+  <img src="/icons/icon-32.png" alt="" width="30" height="30">
+  <div class="installbanner-tekst">
+    <strong>Installer Gedo Tralle</strong>
+    <span>Trykk «Del»-ikonet nederst i Safari, og velg «Legg til på Hjemskjerm».</span>
+  </div>
+  <button class="sekundaer" id="iosInstallLukkBtn">Skjønner</button>
+</div>
+
+<div class="wrap">
+
+  <!-- STARTSIDE: velg prosjekt -->
+  <div id="startside">
+    <header>
+      <h1>Gedo Tralle – Måleteller</h1>
+      <p class="sub">Velg hvilket prosjekt målingene gjelder. Hvert prosjekt har sin egen, helt separate oversikt.</p>
+    </header>
+    <div class="card">
+      <div class="section-title">Velg prosjekt</div>
+      <div class="prosjekt-knapper" id="prosjektKnapper"></div>
+      <p class="hjelpetekst">Hold inne en knapp for å endre navnet på prosjektet.</p>
+    </div>
+  </div>
+
+  <!-- APPINNHOLD: vises etter valgt prosjekt -->
+  <div id="appInnhold">
+    <header>
+      <div class="prosjekt-linje">
+        <span class="prosjekt-navn" id="prosjektNavnVisning">GARB</span>
+        <button class="bytt-prosjekt" id="byttProsjektBtn">← Bytt prosjekt</button>
+      </div>
+      <h1>Gedo Tralle – Måleteller</h1>
+      <p class="sub">Velg om målingen gjelder UTG eller ING, skriv inn strekningen (fra – til) og lagre. De to holdes helt separat, hver med egen oversikt over antall målinger og AsBuilt.</p>
+    </header>
+
+    <div class="card">
+      <div class="bryter">
+        <button class="bryter-knapp aktiv" id="btnUTG">UTG</button>
+        <button class="bryter-knapp" id="btnING">ING</button>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="fra">Fra</label>
+          <input type="number" id="fra" step="any" placeholder="f.eks. 0">
+        </div>
+        <div class="field">
+          <label for="til">Til</label>
+          <input type="number" id="til" step="any" placeholder="f.eks. 25">
+        </div>
+        <button id="lagreBtn">Lagre</button>
+        <button id="asBuiltBtn" class="sekundaer">AsBuilt</button>
+      </div>
+      <div class="error" id="feilmelding">Fyll inn både «fra» og «til» med gyldige, ulike tall.</div>
+      <div class="status" id="lagringsStatus"></div>
+    </div>
+
+    <div class="card">
+      <div class="topplinje">
+        <div class="section-title" style="margin-bottom:0">Oversikt</div>
+        <button class="tilbakestill" id="nullstillBtn">Nullstill data for dette prosjektet</button>
+      </div>
+
+      <div class="kategori-tittel"><span class="kategori-merke">UTG</span></div>
+      <div class="section-title">Målt strekning</div>
+      <div class="legend" id="legend-UTG"></div>
+      <div class="track-outer" id="track-UTG"></div>
+      <div id="liste-UTG" style="margin-top:20px"></div>
+
+      <hr style="border:none; border-top:1px solid #ece9e3; margin:30px 0;">
+
+      <div class="kategori-tittel"><span class="kategori-merke">ING</span></div>
+      <div class="section-title">Målt strekning</div>
+      <div class="legend" id="legend-ING"></div>
+      <div class="track-outer" id="track-ING"></div>
+      <div id="liste-ING" style="margin-top:20px"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const ordinal = ["", "første", "andre", "tredje", "fjerde", "femte", "sjette", "syvende", "åttende", "niende", "tiende"];
+  const API = "/.netlify/functions/malinger";
+  const PROSJEKT_NOKLER = ["p1", "p2", "p3", "p4", "p5", "p6"];
+  const STANDARD_NAVN = {
+    p1: "GARB", p2: "DOVB", p3: "HVDB",
+    p4: "PROSJEKT 4", p5: "PROSJEKT 5", p6: "PROSJEKT 6"
+  };
+
+  const skala = ["#d8d5cb", "#b3ac9c", "#8a8272", "#5c564a"];
+  const ASBUILT_FARGE = "#7b8a95";
+  function fargeForAntall(n) {
+    if (n <= 1) return skala[0];
+    if (n === 2) return skala[1];
+    if (n === 3) return skala[2];
+    return skala[3];
+  }
+  function tekstForAntall(n) {
+    if (n <= 10) return "Målt " + ordinal[n] + " gang";
+    return "Målt " + n + ". gang";
+  }
+
+  function tomtProsjekt() {
+    return {
+      UTG: { malinger: [], asBuilt: [] },
+      ING: { malinger: [], asBuilt: [] }
+    };
+  }
+
+  function gyldigProsjekt(obj) {
+    return {
+      UTG: {
+        malinger: Array.isArray(obj?.UTG?.malinger) ? obj.UTG.malinger : [],
+        asBuilt: Array.isArray(obj?.UTG?.asBuilt) ? obj.UTG.asBuilt : []
+      },
+      ING: {
+        malinger: Array.isArray(obj?.ING?.malinger) ? obj.ING.malinger : [],
+        asBuilt: Array.isArray(obj?.ING?.asBuilt) ? obj.ING.asBuilt : []
+      }
+    };
+  }
+
+  // Prosjektnavn (kan endres av bruker) og selve dataene, holdt separat fra hverandre
+  let prosjektNavn = { ...STANDARD_NAVN };
+  let data = {};
+  PROSJEKT_NOKLER.forEach(k => { data[k] = tomtProsjekt(); });
+
+  let aktivtProsjekt = null;
+  let aktivKategori = "UTG";
+
+  const startside = document.getElementById("startside");
+  const appInnhold = document.getElementById("appInnhold");
+  const prosjektKnapper = document.getElementById("prosjektKnapper");
+  const byttProsjektBtn = document.getElementById("byttProsjektBtn");
+  const prosjektNavnVisning = document.getElementById("prosjektNavnVisning");
+
+  const fraInput = document.getElementById("fra");
+  const tilInput = document.getElementById("til");
+  const lagreBtn = document.getElementById("lagreBtn");
+  const asBuiltBtn = document.getElementById("asBuiltBtn");
+  const nullstillBtn = document.getElementById("nullstillBtn");
+  const btnUTG = document.getElementById("btnUTG");
+  const btnING = document.getElementById("btnING");
+  const feilmelding = document.getElementById("feilmelding");
+  const lagringsStatus = document.getElementById("lagringsStatus");
+
+  function visStatus(tekst, varighetMs) {
+    lagringsStatus.textContent = tekst;
+    lagringsStatus.style.display = "block";
+    if (varighetMs) {
+      setTimeout(() => { lagringsStatus.style.display = "none"; }, varighetMs);
+    }
+  }
+
+  // --- Bygger de 6 prosjektknappene, med støtte for "hold inne for å endre navn" ---
+  function tegnProsjektKnapper() {
+    prosjektKnapper.innerHTML = "";
+    PROSJEKT_NOKLER.forEach(key => {
+      const btn = document.createElement("button");
+      btn.className = "prosjekt-knapp";
+      btn.textContent = prosjektNavn[key];
+      btn.type = "button";
+
+      let holdTimer = null;
+      let holdUtlost = false;
+
+      const startHold = (e) => {
+        holdUtlost = false;
+        btn.classList.add("holder");
+        holdTimer = setTimeout(() => {
+          holdUtlost = true;
+          btn.classList.remove("holder");
+          endreProsjektNavn(key);
+        }, 600);
+      };
+      const avbrytHold = () => {
+        clearTimeout(holdTimer);
+        btn.classList.remove("holder");
+      };
+
+      btn.addEventListener("pointerdown", startHold);
+      btn.addEventListener("pointerup", avbrytHold);
+      btn.addEventListener("pointerleave", avbrytHold);
+      btn.addEventListener("pointercancel", avbrytHold);
+      btn.addEventListener("contextmenu", (e) => e.preventDefault());
+      btn.addEventListener("click", () => {
+        if (holdUtlost) { holdUtlost = false; return; }
+        velgProsjekt(key);
+      });
+
+      prosjektKnapper.appendChild(btn);
+    });
+  }
+
+  function endreProsjektNavn(key) {
+    const nyttNavn = prompt("Nytt navn for prosjektet:", prosjektNavn[key]);
+    if (nyttNavn !== null && nyttNavn.trim() !== "") {
+      prosjektNavn[key] = nyttNavn.trim().slice(0, 24);
+      tegnProsjektKnapper();
+      if (aktivtProsjekt === key) {
+        prosjektNavnVisning.textContent = prosjektNavn[key];
+      }
+      lagreData();
+    }
+  }
+
+  function velgProsjekt(key) {
+    aktivtProsjekt = key;
+    prosjektNavnVisning.textContent = prosjektNavn[key];
+    startside.style.display = "none";
+    appInnhold.style.display = "block";
+    byttKategori("UTG");
+    renderAlt();
+  }
+
+  function byttTilStartside() {
+    aktivtProsjekt = null;
+    appInnhold.style.display = "none";
+    startside.style.display = "block";
+  }
+
+  function byttKategori(kategori) {
+    aktivKategori = kategori;
+    btnUTG.classList.toggle("aktiv", kategori === "UTG");
+    btnING.classList.toggle("aktiv", kategori === "ING");
+  }
+
+  // --- Henter lagrede data. Støtter både det nye formatet og det gamle
+  //     (GARB/DOVB/HVDB direkte i roten), slik at tidligere lagrede data ikke går tapt ---
+  async function lastInn() {
+    try {
+      const res = await fetch(API);
+      if (res.ok) {
+        const rådata = await res.json();
+
+        if (rådata && rådata.prosjekter) {
+          PROSJEKT_NOKLER.forEach(k => {
+            if (rådata.prosjekter[k]) data[k] = gyldigProsjekt(rådata.prosjekter[k]);
+          });
+          if (rådata.navn) {
+            PROSJEKT_NOKLER.forEach(k => {
+              if (typeof rådata.navn[k] === "string" && rådata.navn[k].trim() !== "") {
+                prosjektNavn[k] = rådata.navn[k];
+              }
+            });
+          }
+        } else if (rådata && (rådata.GARB || rådata.DOVB || rådata.HVDB)) {
+          // Gammelt format - migrer inn i det nye
+          if (rådata.GARB) data.p1 = gyldigProsjekt(rådata.GARB);
+          if (rådata.DOVB) data.p2 = gyldigProsjekt(rådata.DOVB);
+          if (rådata.HVDB) data.p3 = gyldigProsjekt(rådata.HVDB);
+        }
+      }
+    } catch (e) {
+      console.warn("Kunne ikke hente lagrede data:", e);
+    }
+    tegnProsjektKnapper();
+  }
+
+  async function lagreData() {
+    lagreBtn.disabled = true;
+    asBuiltBtn.disabled = true;
+    visStatus("Lagrer...");
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ navn: prosjektNavn, prosjekter: data })
+      });
+      if (!res.ok) throw new Error("Serverfeil");
+      visStatus("Lagret ✓", 1500);
+    } catch (e) {
+      visStatus("Kunne ikke lagre – sjekk internettforbindelsen. Endringen er kun lokal inntil videre.");
+    } finally {
+      lagreBtn.disabled = false;
+      asBuiltBtn.disabled = false;
+    }
+  }
+
+  function lesInputVerdier() {
+    const fra = parseFloat(fraInput.value);
+    const til = parseFloat(tilInput.value);
+    if (isNaN(fra) || isNaN(til) || fra === til) return null;
+    return { fra, til };
+  }
+
+  function lagre() {
+    const verdier = lesInputVerdier();
+    if (!verdier) { feilmelding.style.display = "block"; return; }
+    feilmelding.style.display = "none";
+
+    data[aktivtProsjekt][aktivKategori].malinger.push(verdier);
+
+    fraInput.value = "";
+    tilInput.value = "";
+    fraInput.focus();
+    renderAlt();
+    lagreData();
+  }
+
+  function lagreAsBuilt() {
+    const verdier = lesInputVerdier();
+    if (!verdier) { feilmelding.style.display = "block"; return; }
+    feilmelding.style.display = "none";
+
+    data[aktivtProsjekt][aktivKategori].asBuilt.push(verdier);
+
+    fraInput.value = "";
+    tilInput.value = "";
+    fraInput.focus();
+    renderAlt();
+    lagreData();
+  }
+
+  async function nullstill() {
+    if (!confirm(`Er du sikker på at du vil slette ALLE lagrede målinger og AsBuilt-strekninger for prosjekt ${prosjektNavn[aktivtProsjekt]} (UTG og ING)? Dette kan ikke angres.`)) return;
+    data[aktivtProsjekt] = tomtProsjekt();
+    renderAlt();
+    await lagreData();
+  }
+
+  function beregnDekning(malinger) {
+    if (malinger.length === 0) return { segmenter: [], min: 0, maks: 0 };
+
+    const bruddpunkter = new Set();
+    malinger.forEach(m => {
+      bruddpunkter.add(Math.min(m.fra, m.til));
+      bruddpunkter.add(Math.max(m.fra, m.til));
+    });
+    const sortert = Array.from(bruddpunkter).sort((a, b) => a - b);
+
+    const segmenter = [];
+    for (let i = 0; i < sortert.length - 1; i++) {
+      const start = sortert[i];
+      const slutt = sortert[i + 1];
+      const midt = (start + slutt) / 2;
+      let antall = 0;
+      malinger.forEach(m => {
+        const lo = Math.min(m.fra, m.til);
+        const hi = Math.max(m.fra, m.til);
+        if (midt >= lo && midt <= hi) antall++;
+      });
+      segmenter.push({ start, slutt, antall });
+    }
+    return { segmenter, min: sortert[0], maks: sortert[sortert.length - 1] };
+  }
+
+  function slaSammen(segmenter) {
+    const resultat = [];
+    segmenter.forEach(s => {
+      const forrige = resultat[resultat.length - 1];
+      if (forrige && forrige.antall === s.antall && forrige.slutt === s.start) {
+        forrige.slutt = s.slutt;
+      } else {
+        resultat.push({ start: s.start, slutt: s.slutt, antall: s.antall });
+      }
+    });
+    return resultat;
+  }
+
+  function renderKategori(kategori) {
+    const { malinger, asBuilt } = data[aktivtProsjekt][kategori];
+    const legendEl = document.getElementById("legend-" + kategori);
+    const trackOuter = document.getElementById("track-" + kategori);
+    const liste = document.getElementById("liste-" + kategori);
+
+    const { segmenter, min, maks } = beregnDekning(malinger);
+    const maxAntall = segmenter.reduce((m, s) => Math.max(m, s.antall), 0);
+
+    legendEl.innerHTML = "";
+    const nivaer = maxAntall >= 4 ? [1, 2, 3, 4] : Array.from({ length: maxAntall }, (_, i) => i + 1);
+    nivaer.forEach(n => {
+      const item = document.createElement("div");
+      item.className = "legend-item";
+      const tekst = n === 4 ? "4+ ganger" : (n + (n === 1 ? " gang" : " ganger"));
+      item.innerHTML = `<span class="legend-swatch" style="background:${fargeForAntall(n)}"></span><span>Målt ${tekst}</span>`;
+      legendEl.appendChild(item);
+    });
+
+    if (malinger.length === 0) {
+      trackOuter.innerHTML = '<div class="empty">Ingen målinger lagret ennå.</div>';
+    } else {
+      const span = (maks - min) || 1;
+      let html = '<div class="track">';
+      segmenter.forEach((s, i) => {
+        const bredde = ((s.slutt - s.start) / span) * 100;
+        const capStart = i === 0 ? "cap-start" : "";
+        const capEnd = i === segmenter.length - 1 ? "cap-end" : "";
+        const tooltip = `${s.start} – ${s.slutt}: ${tekstForAntall(s.antall)}`;
+        html += `<div class="segment ${capStart} ${capEnd}" style="width:${bredde}%; background:${fargeForAntall(s.antall)}" data-tooltip="${tooltip}"></div>`;
+      });
+      html += '</div>';
+      html += `<div class="range-labels"><span>${min}</span><span>${maks}</span></div>`;
+      trackOuter.innerHTML = html;
+    }
+
+    liste.innerHTML = "";
+    if (malinger.length === 0 && asBuilt.length === 0) {
+      liste.innerHTML = '<div class="empty">Ingen målinger lagret ennå.</div>';
+      return;
+    }
+
+    const sammenslatt = slaSammen(segmenter);
+    const grupperNivaer = maxAntall >= 4 ? [1, 2, 3, 4] : Array.from({ length: Math.max(maxAntall, 1) }, (_, i) => i + 1);
+
+    let kolonnerHtml = '<div class="kolonner">';
+    grupperNivaer.forEach(n => {
+      const strekninger = sammenslatt.filter(s => (n === 4 ? s.antall >= 4 : s.antall === n));
+      const overskrift = ordinal[n] ? ordinal[n].charAt(0).toUpperCase() + ordinal[n].slice(1) + " gangs måling" : n + ". gangs måling";
+
+      kolonnerHtml += `
+        <div class="kolonne">
+          <div class="kolonne-header">
+            <span class="kolonne-swatch" style="background:${fargeForAntall(n)}"></span>
+            <span>${overskrift}</span>
+          </div>
+          <div class="kolonne-liste">
+      `;
+      if (strekninger.length === 0) {
+        kolonnerHtml += '<div class="kolonne-tom">Ingen ennå</div>';
+      } else {
+        strekninger.forEach(s => {
+          kolonnerHtml += `<div class="strekning-chip">${s.start} – ${s.slutt}</div>`;
+        });
+      }
+      kolonnerHtml += `</div></div>`;
+    });
+
+    kolonnerHtml += `
+      <div class="kolonne">
+        <div class="kolonne-header">
+          <span class="kolonne-swatch" style="background:${ASBUILT_FARGE}"></span>
+          <span>AsBuilt</span>
+        </div>
+        <div class="kolonne-liste">
+    `;
+    if (asBuilt.length === 0) {
+      kolonnerHtml += '<div class="kolonne-tom">Ingen ennå</div>';
+    } else {
+      asBuilt
+        .slice()
+        .sort((a, b) => Math.min(a.fra, a.til) - Math.min(b.fra, b.til))
+        .forEach(s => {
+          kolonnerHtml += `<div class="strekning-chip">${s.fra} – ${s.til}</div>`;
+        });
+    }
+    kolonnerHtml += `</div></div></div>`;
+
+    liste.innerHTML = kolonnerHtml;
+  }
+
+  function renderAlt() {
+    if (!aktivtProsjekt) return;
+    renderKategori("UTG");
+    renderKategori("ING");
+  }
+
+  byttProsjektBtn.addEventListener("click", byttTilStartside);
+  btnUTG.addEventListener("click", () => { byttKategori("UTG"); });
+  btnING.addEventListener("click", () => { byttKategori("ING"); });
+  lagreBtn.addEventListener("click", lagre);
+  asBuiltBtn.addEventListener("click", lagreAsBuilt);
+  nullstillBtn.addEventListener("click", nullstill);
+  fraInput.addEventListener("keydown", e => { if (e.key === "Enter") tilInput.focus(); });
+  tilInput.addEventListener("keydown", e => { if (e.key === "Enter") lagre(); });
+
+  lastInn();
+
+  // --- PWA: registrer service worker ---
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(err => console.warn("Service worker feilet:", err));
+    });
+  }
+
+  // --- PWA: installasjonsprompt (Android/Chrome/Edge) ---
+  const installBanner = document.getElementById("installBanner");
+  const installJaBtn = document.getElementById("installJaBtn");
+  const installNeiBtn = document.getElementById("installNeiBtn");
+  let utsattPrompt = null;
+
+  function kjorerAlleredeSomApp() {
+    return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  }
+
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    utsattPrompt = e;
+    if (!kjorerAlleredeSomApp() && !localStorage.getItem("gedo-tralle-install-avvist")) {
+      installBanner.style.display = "flex";
+    }
+  });
+
+  installJaBtn.addEventListener("click", async () => {
+    installBanner.style.display = "none";
+    if (utsattPrompt) {
+      utsattPrompt.prompt();
+      await utsattPrompt.userChoice;
+      utsattPrompt = null;
+    }
+  });
+
+  installNeiBtn.addEventListener("click", () => {
+    installBanner.style.display = "none";
+    localStorage.setItem("gedo-tralle-install-avvist", "1");
+  });
+
+  window.addEventListener("appinstalled", () => {
+    installBanner.style.display = "none";
+  });
+
+  // --- PWA: egen instruksjon for iOS/Safari, som ikke støtter automatisk prompt ---
+  const iosInstallBanner = document.getElementById("iosInstallBanner");
+  const iosInstallLukkBtn = document.getElementById("iosInstallLukkBtn");
+
+  function erIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
+  if (erIOS() && !kjorerAlleredeSomApp() && !localStorage.getItem("gedo-tralle-ios-install-avvist")) {
+    setTimeout(() => { iosInstallBanner.style.display = "flex"; }, 1200);
+  }
+
+  iosInstallLukkBtn.addEventListener("click", () => {
+    iosInstallBanner.style.display = "none";
+    localStorage.setItem("gedo-tralle-ios-install-avvist", "1");
+  });
+</script>
+</body>
+</html>
