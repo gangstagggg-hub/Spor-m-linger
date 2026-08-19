@@ -502,18 +502,50 @@
     color: #8a887f;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: 6px;
+    margin-bottom: 16px;
   }
-  .modal-verdi {
-    font-size: 20px;
-    font-weight: 700;
-    color: #21201d;
-    margin-bottom: 20px;
+  .modal-felter {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 6px;
+    text-align: left;
+  }
+  .modal-felt { flex: 1; }
+  .modal-felt label {
+    display: block;
+    font-size: 11.5px;
+    color: #8a887f;
+    margin-bottom: 5px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .modal-felt input {
+    width: 100%;
+    padding: 10px 11px;
+    border: 1.5px solid #e4e1d9;
+    border-radius: 9px;
+    font-size: 16px;
+    background: #fbfaf7;
+    color: #2a2a28;
+  }
+  .modal-felt input:focus {
+    outline: none;
+    border-color: #9a968a;
+    background: white;
+  }
+  .modal-feil {
+    color: #b4483a;
+    font-size: 12.5px;
+    margin-bottom: 14px;
+    display: none;
+    text-align: left;
   }
   .modal-knapper {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    margin-top: 18px;
   }
   .modal-knapper button { width: 100%; }
   .modal-knapper button.fare {
@@ -633,11 +665,21 @@
 
 <div class="modal-bakgrunn" id="handlingsModal">
   <div class="modal-boks">
-    <div class="modal-tittel">Måling</div>
-    <div class="modal-verdi" id="modalTekst">0 – 0</div>
+    <div class="modal-tittel">Rediger måling</div>
+    <div class="modal-felter">
+      <div class="modal-felt">
+        <label for="modalFra">Fra</label>
+        <input type="number" id="modalFra" step="any">
+      </div>
+      <div class="modal-felt">
+        <label for="modalTil">Til</label>
+        <input type="number" id="modalTil" step="any">
+      </div>
+    </div>
+    <div class="modal-feil" id="modalFeil">Fyll inn gyldige, ulike tall.</div>
     <div class="modal-knapper">
-      <button id="modalRedigerBtn">Rediger</button>
-      <button id="modalSlettBtn" class="fare">Slett</button>
+      <button id="modalLagreBtn">Lagre endring</button>
+      <button id="modalSlettBtn" class="fare">Slett måling</button>
       <button id="modalAvbrytBtn" class="sekundaer">Avbryt</button>
     </div>
   </div>
@@ -1110,8 +1152,10 @@
 
   // --- Handlingsmodal: rediger eller slett en enkelt måling ---
   const handlingsModal = document.getElementById("handlingsModal");
-  const modalTekst = document.getElementById("modalTekst");
-  const modalRedigerBtn = document.getElementById("modalRedigerBtn");
+  const modalFra = document.getElementById("modalFra");
+  const modalTil = document.getElementById("modalTil");
+  const modalFeil = document.getElementById("modalFeil");
+  const modalLagreBtn = document.getElementById("modalLagreBtn");
   const modalSlettBtn = document.getElementById("modalSlettBtn");
   const modalAvbrytBtn = document.getElementById("modalAvbrytBtn");
   let modalKategori = null;
@@ -1128,8 +1172,11 @@
     modalId = id;
     const m = finnMaling();
     if (!m) return;
-    modalTekst.textContent = `${m.fra} – ${m.til}`;
+    modalFra.value = m.fra;
+    modalTil.value = m.til;
+    modalFeil.style.display = "none";
     handlingsModal.classList.add("vis");
+    setTimeout(() => modalFra.focus(), 50);
   }
 
   function lukkHandlingsModal() {
@@ -1144,20 +1191,14 @@
     if (e.target === handlingsModal) lukkHandlingsModal();
   });
 
-  modalRedigerBtn.addEventListener("click", () => {
+  modalLagreBtn.addEventListener("click", () => {
     const m = finnMaling();
     if (!m) { lukkHandlingsModal(); return; }
 
-    const nyFraTekst = prompt("Ny verdi for Fra:", m.fra);
-    if (nyFraTekst === null) { lukkHandlingsModal(); return; }
-    const nyTilTekst = prompt("Ny verdi for Til:", m.til);
-    if (nyTilTekst === null) { lukkHandlingsModal(); return; }
-
-    const nyFra = parseFloat(nyFraTekst);
-    const nyTil = parseFloat(nyTilTekst);
+    const nyFra = parseFloat(modalFra.value);
+    const nyTil = parseFloat(modalTil.value);
     if (isNaN(nyFra) || isNaN(nyTil) || nyFra === nyTil) {
-      alert("Ugyldige verdier - målingen ble ikke endret.");
-      lukkHandlingsModal();
+      modalFeil.style.display = "block";
       return;
     }
 
@@ -1167,6 +1208,9 @@
     renderAlt();
     lagreData();
   });
+
+  modalFra.addEventListener("keydown", e => { if (e.key === "Enter") modalTil.focus(); });
+  modalTil.addEventListener("keydown", e => { if (e.key === "Enter") modalLagreBtn.click(); });
 
   modalSlettBtn.addEventListener("click", () => {
     const arr = data[aktivtProsjekt][modalKategori][modalKilde];
