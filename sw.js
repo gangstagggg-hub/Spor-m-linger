@@ -1,5 +1,5 @@
-const CACHE_NAVN = "gedo-tralle-v2";
-const APP_SKALL = ["/", "/index.html", "/manifest.json", "/icons/icon-192.png", "/icons/icon-512.png"];
+const CACHE_NAVN = "gedo-tralle-v1";
+const APP_SKALL = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -17,14 +17,8 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Nettverk først for API-kall (målinger skal alltid være ferske), cache som reserve for resten
+// Nettverk først, cache som reserve (alt lagres nå lokalt på enheten, ikke via server)
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-
-  if (url.pathname.startsWith("/.netlify/functions/")) {
-    return; // ikke cache API-kall
-  }
-
   event.respondWith(
     fetch(event.request)
       .then((res) => {

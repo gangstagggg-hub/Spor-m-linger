@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Gedo Tralle – Måleteller</title>
-<link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/icons/favicon.ico" sizes="any">
-<link rel="icon" href="/icons/icon-32.png" type="image/png" sizes="32x32">
-<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.ico" sizes="any">
+<link rel="icon" href="icons/icon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
 <meta name="theme-color" content="#3c3b37">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -492,7 +492,7 @@
 <body>
 
 <div class="installbanner" id="installBanner">
-  <img src="/icons/icon-32.png" alt="" width="30" height="30">
+  <img src="icons/icon-32.png" alt="" width="30" height="30">
   <div class="installbanner-tekst">
     <strong>Installer Gedo Tralle</strong>
     <span>Legg til appen på hjemskjermen for rask tilgang, uten nettleserfelt.</span>
@@ -504,7 +504,7 @@
 </div>
 
 <div class="installbanner" id="iosInstallBanner">
-  <img src="/icons/icon-32.png" alt="" width="30" height="30">
+  <img src="icons/icon-32.png" alt="" width="30" height="30">
   <div class="installbanner-tekst">
     <strong>Installer Gedo Tralle</strong>
     <span>Trykk «Del»-ikonet nederst i Safari, og velg «Legg til på Hjemskjerm».</span>
@@ -513,7 +513,7 @@
 </div>
 
 <div class="installbanner" id="kromReserveBanner">
-  <img src="/icons/icon-32.png" alt="" width="30" height="30">
+  <img src="icons/icon-32.png" alt="" width="30" height="30">
   <div class="installbanner-tekst">
     <strong>Installer Gedo Tralle</strong>
     <span id="kromReserveTekst">Trykk ⋮ øverst til høyre, og velg «Installer app».</span>
@@ -612,7 +612,7 @@
 
 <script>
   const ordinal = ["", "første", "andre", "tredje", "fjerde", "femte", "sjette", "syvende", "åttende", "niende", "tiende"];
-  const API = "/.netlify/functions/malinger";
+  const LAGRINGSNOKKEL = "gedo-tralle-data";
   const PROSJEKT_NOKLER = ["p1", "p2", "p3", "p4", "p5", "p6"];
   const STANDARD_NAVN = {
     p1: "GARB", p2: "DOVB", p3: "HVDB",
@@ -757,13 +757,14 @@
     btnING.classList.toggle("aktiv", kategori === "ING");
   }
 
-  // --- Henter lagrede data. Støtter både det nye formatet og det gamle
-  //     (GARB/DOVB/HVDB direkte i roten), slik at tidligere lagrede data ikke går tapt ---
+  // --- Henter lagrede data fra denne enhetens localStorage. Støtter både det nye
+  //     formatet og det gamle (GARB/DOVB/HVDB direkte i roten), slik at tidligere
+  //     lagrede data ikke går tapt ---
   async function lastInn() {
     try {
-      const res = await fetch(API);
-      if (res.ok) {
-        const rådata = await res.json();
+      const rå = localStorage.getItem(LAGRINGSNOKKEL);
+      if (rå) {
+        const rådata = JSON.parse(rå);
 
         if (rådata && rådata.prosjekter) {
           PROSJEKT_NOKLER.forEach(k => {
@@ -802,15 +803,10 @@
     asBuiltBtn.disabled = true;
     visStatus("Lagrer...");
     try {
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ navn: prosjektNavn, prosjekter: data })
-      });
-      if (!res.ok) throw new Error("Serverfeil");
+      localStorage.setItem(LAGRINGSNOKKEL, JSON.stringify({ navn: prosjektNavn, prosjekter: data }));
       visStatus("Lagret ✓", 1500);
     } catch (e) {
-      visStatus("Kunne ikke lagre – sjekk internettforbindelsen. Endringen er kun lokal inntil videre.");
+      visStatus("Kunne ikke lagre - enheten kan være tom for lagringsplass.");
     } finally {
       lagreBtn.disabled = false;
       asBuiltBtn.disabled = false;
@@ -1155,7 +1151,7 @@
   // --- PWA: registrer service worker ---
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(err => console.warn("Service worker feilet:", err));
+      navigator.serviceWorker.register("sw.js").catch(err => console.warn("Service worker feilet:", err));
     });
   }
 
