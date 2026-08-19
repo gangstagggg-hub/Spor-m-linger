@@ -23,7 +23,7 @@
     -webkit-user-select: none;
     user-select: none;
   }
-  input, .strekning-chip { -webkit-user-select: text; user-select: text; }
+  input { -webkit-user-select: text; user-select: text; }
   .wrap {
     max-width: 660px;
     margin: 0 auto;
@@ -346,6 +346,9 @@
     position: relative;
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    user-select: none;
     transition: background .12s ease;
   }
   .strekning-chip.holder {
