@@ -441,6 +441,52 @@
     border-color: #5a5952;
   }
   .installbanner button.sekundaer:hover { background: #4a4944; }
+
+  /* Handlingsmodal (rediger/slett) */
+  .modal-bakgrunn {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20, 19, 17, 0.55);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-bakgrunn.vis { display: flex; }
+  .modal-boks {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 24px;
+    max-width: 320px;
+    width: 100%;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+    text-align: center;
+  }
+  .modal-tittel {
+    font-size: 12px;
+    font-weight: 700;
+    color: #8a887f;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .modal-verdi {
+    font-size: 20px;
+    font-weight: 700;
+    color: #21201d;
+    margin-bottom: 20px;
+  }
+  .modal-knapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .modal-knapper button { width: 100%; }
+  .modal-knapper button.fare {
+    background: #b4483a;
+  }
+  .modal-knapper button.fare:hover { background: #9c3c30; }
 </style>
 </head>
 <body>
@@ -533,6 +579,9 @@
       <div class="legend" id="legend-UTG"></div>
       <div class="track-outer" id="track-UTG"></div>
       <div id="liste-UTG" style="margin-top:20px"></div>
+      <div class="section-title" style="margin-top:26px">Rediger eller slett en måling</div>
+      <p class="hjelpetekst" style="margin-bottom:14px">Hold inne en måling i 1 sekund for å redigere eller slette den.</p>
+      <div class="kolonner" id="raw-UTG"></div>
 
       <hr style="border:none; border-top:1px solid #ece9e3; margin:30px 0;">
 
@@ -541,9 +590,24 @@
       <div class="legend" id="legend-ING"></div>
       <div class="track-outer" id="track-ING"></div>
       <div id="liste-ING" style="margin-top:20px"></div>
+      <div class="section-title" style="margin-top:26px">Rediger eller slett en måling</div>
+      <p class="hjelpetekst" style="margin-bottom:14px">Hold inne en måling i 1 sekund for å redigere eller slette den.</p>
+      <div class="kolonner" id="raw-ING"></div>
     </div>
   </div>
 
+</div>
+
+<div class="modal-bakgrunn" id="handlingsModal">
+  <div class="modal-boks">
+    <div class="modal-tittel">Måling</div>
+    <div class="modal-verdi" id="modalTekst">0 – 0</div>
+    <div class="modal-knapper">
+      <button id="modalRedigerBtn">Rediger</button>
+      <button id="modalSlettBtn" class="fare">Slett</button>
+      <button id="modalAvbrytBtn" class="sekundaer">Avbryt</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -722,6 +786,14 @@
     } catch (e) {
       console.warn("Kunne ikke hente lagrede data:", e);
     }
+    // Sikrer at alle målinger har en unik id (for eldre lagrede data uten id)
+    PROSJEKT_NOKLER.forEach(pk => {
+      ["UTG", "ING"].forEach(kat => {
+        ["malinger", "asBuilt"].forEach(kilde => {
+          data[pk][kat][kilde].forEach(m => { if (!m.id) m.id = lagUnikId(); });
+        });
+      });
+    });
     tegnProsjektKnapper();
   }
 
@@ -745,11 +817,15 @@
     }
   }
 
+  function lagUnikId() {
+    return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
+  }
+
   function lesInputVerdier() {
     const fra = parseFloat(fraInput.value);
     const til = parseFloat(tilInput.value);
     if (isNaN(fra) || isNaN(til) || fra === til) return null;
-    return { fra, til };
+    return { fra, til, id: lagUnikId() };
   }
 
   function lagre() {
@@ -921,7 +997,149 @@
     if (!aktivtProsjekt) return;
     renderKategori("UTG");
     renderKategori("ING");
+    renderRaw("UTG");
+    renderRaw("ING");
   }
+
+  // --- Generisk hold-inne-lytter (1 sekund) for alle knapper/chips som støtter det ---
+  function leggTilHoldLytter(el, callback) {
+    let timer = null;
+    let utlost = false;
+    const start = () => {
+      utlost = false;
+      el.classList.add("holder");
+      timer = setTimeout(() => {
+        utlost = true;
+        el.classList.remove("holder");
+        callback();
+      }, 1000);
+    };
+    const avbryt = () => {
+      clearTimeout(timer);
+      el.classList.remove("holder");
+    };
+    el.addEventListener("pointerdown", start);
+    el.addEventListener("pointerup", avbryt);
+    el.addEventListener("pointerleave", avbryt);
+    el.addEventListener("pointercancel", avbryt);
+    el.addEventListener("contextmenu", e => e.preventDefault());
+    el.addEventListener("click", e => {
+      if (utlost) { e.preventDefault(); utlost = false; }
+    });
+  }
+
+  // --- Tegner de to redigerbare rå-listene (Målinger / AsBuilt) for en kategori ---
+  function byggRawKolonne(tittel, farge, liste, kategori, kilde) {
+    const kolonne = document.createElement("div");
+    kolonne.className = "kolonne";
+
+    const header = document.createElement("div");
+    header.className = "kolonne-header";
+    header.innerHTML = `<span class="kolonne-swatch" style="background:${farge}"></span><span>${tittel}</span>`;
+    kolonne.appendChild(header);
+
+    const listeEl = document.createElement("div");
+    listeEl.className = "kolonne-liste";
+
+    if (liste.length === 0) {
+      const tom = document.createElement("div");
+      tom.className = "kolonne-tom";
+      tom.textContent = "Ingen ennå";
+      listeEl.appendChild(tom);
+    } else {
+      liste
+        .slice()
+        .sort((a, b) => Math.min(a.fra, a.til) - Math.min(b.fra, b.til))
+        .forEach(m => {
+          const chip = document.createElement("div");
+          chip.className = "strekning-chip";
+          chip.textContent = `${m.fra} – ${m.til}`;
+          leggTilHoldLytter(chip, () => apneHandlingsModal(kategori, kilde, m.id));
+          listeEl.appendChild(chip);
+        });
+    }
+
+    kolonne.appendChild(listeEl);
+    return kolonne;
+  }
+
+  function renderRaw(kategori) {
+    const container = document.getElementById("raw-" + kategori);
+    if (!aktivtProsjekt) { container.innerHTML = ""; return; }
+    const { malinger, asBuilt } = data[aktivtProsjekt][kategori];
+    container.innerHTML = "";
+    container.appendChild(byggRawKolonne("Målinger", fargeForAntall(1), malinger, kategori, "malinger"));
+    container.appendChild(byggRawKolonne("AsBuilt", ASBUILT_FARGE, asBuilt, kategori, "asBuilt"));
+  }
+
+  // --- Handlingsmodal: rediger eller slett en enkelt måling ---
+  const handlingsModal = document.getElementById("handlingsModal");
+  const modalTekst = document.getElementById("modalTekst");
+  const modalRedigerBtn = document.getElementById("modalRedigerBtn");
+  const modalSlettBtn = document.getElementById("modalSlettBtn");
+  const modalAvbrytBtn = document.getElementById("modalAvbrytBtn");
+  let modalKategori = null;
+  let modalKilde = null;
+  let modalId = null;
+
+  function finnMaling() {
+    return data[aktivtProsjekt][modalKategori][modalKilde].find(m => m.id === modalId);
+  }
+
+  function apneHandlingsModal(kategori, kilde, id) {
+    modalKategori = kategori;
+    modalKilde = kilde;
+    modalId = id;
+    const m = finnMaling();
+    if (!m) return;
+    modalTekst.textContent = `${m.fra} – ${m.til}`;
+    handlingsModal.classList.add("vis");
+  }
+
+  function lukkHandlingsModal() {
+    handlingsModal.classList.remove("vis");
+    modalKategori = null;
+    modalKilde = null;
+    modalId = null;
+  }
+
+  modalAvbrytBtn.addEventListener("click", lukkHandlingsModal);
+  handlingsModal.addEventListener("click", e => {
+    if (e.target === handlingsModal) lukkHandlingsModal();
+  });
+
+  modalRedigerBtn.addEventListener("click", () => {
+    const m = finnMaling();
+    if (!m) { lukkHandlingsModal(); return; }
+
+    const nyFraTekst = prompt("Ny verdi for Fra:", m.fra);
+    if (nyFraTekst === null) { lukkHandlingsModal(); return; }
+    const nyTilTekst = prompt("Ny verdi for Til:", m.til);
+    if (nyTilTekst === null) { lukkHandlingsModal(); return; }
+
+    const nyFra = parseFloat(nyFraTekst);
+    const nyTil = parseFloat(nyTilTekst);
+    if (isNaN(nyFra) || isNaN(nyTil) || nyFra === nyTil) {
+      alert("Ugyldige verdier - målingen ble ikke endret.");
+      lukkHandlingsModal();
+      return;
+    }
+
+    m.fra = nyFra;
+    m.til = nyTil;
+    lukkHandlingsModal();
+    renderAlt();
+    lagreData();
+  });
+
+  modalSlettBtn.addEventListener("click", () => {
+    const arr = data[aktivtProsjekt][modalKategori][modalKilde];
+    const idx = arr.findIndex(m => m.id === modalId);
+    if (idx > -1) arr.splice(idx, 1);
+    lukkHandlingsModal();
+    renderAlt();
+    lagreData();
+  });
 
   byttProsjektBtn.addEventListener("click", byttTilStartside);
   btnUTG.addEventListener("click", () => { byttKategori("UTG"); });
