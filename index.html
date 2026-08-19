@@ -645,7 +645,8 @@
 
 <script>
   const ordinal = ["", "første", "andre", "tredje", "fjerde", "femte", "sjette", "syvende", "åttende", "niende", "tiende"];
-  const LAGRINGSNOKKEL = "gedo-tralle-data";
+  // ⚠️ Rett denne til din faktiske Netlify-adresse hvis den er annerledes:
+  const API = "https://deluxe-gumption-a45e96.netlify.app/.netlify/functions/malinger";
   const PROSJEKT_NOKLER = ["p1", "p2", "p3", "p4", "p5", "p6"];
   const STANDARD_NAVN = {
     p1: "GARB", p2: "DOVB", p3: "HVDB",
@@ -765,14 +766,14 @@
     btnING.classList.toggle("aktiv", kategori === "ING");
   }
 
-  // --- Henter lagrede data fra denne enhetens localStorage. Støtter både det nye
-  //     formatet og det gamle (GARB/DOVB/HVDB direkte i roten), slik at tidligere
-  //     lagrede data ikke går tapt ---
+  // --- Henter lagrede data fra den delte Netlify-funksjonen, slik at alle med
+  //     lenken ser de samme dataene. Støtter både det nye formatet og det gamle
+  //     (GARB/DOVB/HVDB direkte i roten), slik at tidligere lagrede data ikke går tapt ---
   async function lastInn() {
     try {
-      const rå = localStorage.getItem(LAGRINGSNOKKEL);
-      if (rå) {
-        const rådata = JSON.parse(rå);
+      const res = await fetch(API);
+      if (res.ok) {
+        const rådata = await res.json();
 
         if (rådata && rådata.prosjekter) {
           PROSJEKT_NOKLER.forEach(k => {
@@ -811,10 +812,15 @@
     asBuiltBtn.disabled = true;
     visStatus("Lagrer...");
     try {
-      localStorage.setItem(LAGRINGSNOKKEL, JSON.stringify({ navn: prosjektNavn, prosjekter: data }));
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ navn: prosjektNavn, prosjekter: data })
+      });
+      if (!res.ok) throw new Error("Serverfeil");
       visStatus("Lagret ✓", 1500);
     } catch (e) {
-      visStatus("Kunne ikke lagre - enheten kan være tom for lagringsplass.");
+      visStatus("Kunne ikke lagre – sjekk internettforbindelsen. Endringen er kun lokal inntil videre.");
     } finally {
       lagreBtn.disabled = false;
       asBuiltBtn.disabled = false;
