@@ -1,4 +1,4 @@
-const CACHE_NAVN = "gedo-tralle-v5";
+const CACHE_NAVN = "gedo-tralle-v6";
 const APP_SKALL = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -17,15 +17,9 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Nettverk først for appens egne filer, cache som reserve.
-// Kall til den delte lagringsfunksjonen (Netlify) rører vi ikke - de skal alltid
-// gå direkte til nettverket, uten caching, slik at alle ser ferske data.
+// Nettverk først, cache som reserve (alt lagres nå lokalt på enheten, ikke via server)
 self.addEventListener("fetch", (event) => {
-  const url = new URL(event.request.url);
-
-  if (url.origin !== self.location.origin || event.request.method !== "GET") {
-    return; // la nettleseren håndtere dette som vanlig, ingen SW-innblanding
-  }
+  if (event.request.method !== "GET") return;
 
   event.respondWith(
     fetch(event.request)
