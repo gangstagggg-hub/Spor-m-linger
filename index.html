@@ -156,6 +156,8 @@
     transition: all .15s ease;
     -webkit-touch-callout: none;
     word-break: break-word;
+    position: relative;
+    touch-action: none;
   }
   .prosjekt-knapp:hover {
     background: #3c3b37;
@@ -341,7 +343,35 @@
     border: 1px solid #ece9e3;
     border-radius: 7px;
     padding: 7px 10px;
+    position: relative;
+    touch-action: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background .12s ease;
   }
+  .strekning-chip.holder {
+    background: #eef2f8;
+  }
+  .hold-ring {
+    position: absolute;
+    top: -7px;
+    right: -7px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: conic-gradient(#2f6fed 0deg, rgba(47,111,237,0.18) 0deg);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .1s ease;
+    box-shadow: 0 0 0 2px #ffffff;
+  }
+  .hold-ring::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: #ffffff;
+  }
+  .hold-ring.vis { opacity: 1; }
   .kolonne-tom {
     font-size: 12.5px;
     color: #b0aea5;
@@ -693,32 +723,7 @@
       btn.textContent = prosjektNavn[key];
       btn.type = "button";
 
-      let holdTimer = null;
-      let holdUtlost = false;
-
-      const startHold = (e) => {
-        holdUtlost = false;
-        btn.classList.add("holder");
-        holdTimer = setTimeout(() => {
-          holdUtlost = true;
-          btn.classList.remove("holder");
-          endreProsjektNavn(key);
-        }, 600);
-      };
-      const avbrytHold = () => {
-        clearTimeout(holdTimer);
-        btn.classList.remove("holder");
-      };
-
-      btn.addEventListener("pointerdown", startHold);
-      btn.addEventListener("pointerup", avbrytHold);
-      btn.addEventListener("pointerleave", avbrytHold);
-      btn.addEventListener("pointercancel", avbrytHold);
-      btn.addEventListener("contextmenu", (e) => e.preventDefault());
-      btn.addEventListener("click", () => {
-        if (holdUtlost) { holdUtlost = false; return; }
-        velgProsjekt(key);
-      });
+      leggTilHoldLytter(btn, () => endreProsjektNavn(key), true, 600, () => velgProsjekt(key));
 
       prosjektKnapper.appendChild(btn);
     });
@@ -997,30 +1002,62 @@
     renderRaw("ING");
   }
 
-  // --- Generisk hold-inne-lytter (1 sekund) for alle knapper/chips som støtter det ---
-  function leggTilHoldLytter(el, callback) {
+  // --- Generisk hold-inne-lytter (1 sekund), med visuell ring og pointer capture
+  //     slik at små fingerbevegelser på mobil ikke avbryter holdet før tiden er ute ---
+  function leggTilHoldLytter(el, onHold, visRing, varighetMs, onTap) {
+    const varighet = varighetMs || 1000;
     let timer = null;
+    let raf = null;
     let utlost = false;
-    const start = () => {
+    let startTid = 0;
+    let ring = null;
+
+    if (visRing) {
+      ring = document.createElement("div");
+      ring.className = "hold-ring";
+      el.appendChild(ring);
+    }
+
+    const oppdaterRing = () => {
+      const forlopt = performance.now() - startTid;
+      const andel = Math.min(forlopt / varighet, 1);
+      if (ring) ring.style.background = `conic-gradient(#2f6fed ${andel * 360}deg, rgba(47,111,237,0.18) 0deg)`;
+      if (andel < 1) raf = requestAnimationFrame(oppdaterRing);
+    };
+
+    const start = (e) => {
       utlost = false;
+      startTid = performance.now();
       el.classList.add("holder");
+      if (ring) {
+        ring.style.background = "conic-gradient(#2f6fed 0deg, rgba(47,111,237,0.18) 0deg)";
+        ring.classList.add("vis");
+        raf = requestAnimationFrame(oppdaterRing);
+      }
+      if (el.setPointerCapture && e.pointerId !== undefined) {
+        try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      }
       timer = setTimeout(() => {
         utlost = true;
         el.classList.remove("holder");
-        callback();
-      }, 1000);
+        if (ring) ring.classList.remove("vis");
+        cancelAnimationFrame(raf);
+        onHold();
+      }, varighet);
     };
     const avbryt = () => {
       clearTimeout(timer);
+      cancelAnimationFrame(raf);
       el.classList.remove("holder");
+      if (ring) ring.classList.remove("vis");
     };
     el.addEventListener("pointerdown", start);
     el.addEventListener("pointerup", avbryt);
-    el.addEventListener("pointerleave", avbryt);
     el.addEventListener("pointercancel", avbryt);
     el.addEventListener("contextmenu", e => e.preventDefault());
     el.addEventListener("click", e => {
-      if (utlost) { e.preventDefault(); utlost = false; }
+      if (utlost) { e.preventDefault(); utlost = false; return; }
+      if (onTap) onTap();
     });
   }
 
@@ -1050,7 +1087,7 @@
           const chip = document.createElement("div");
           chip.className = "strekning-chip";
           chip.textContent = `${m.fra} – ${m.til}`;
-          leggTilHoldLytter(chip, () => apneHandlingsModal(kategori, kilde, m.id));
+          leggTilHoldLytter(chip, () => apneHandlingsModal(kategori, kilde, m.id), true);
           listeEl.appendChild(chip);
         });
     }
